@@ -4,40 +4,49 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from snownlp import SnowNLP
 
-class NewsScraper:
-    """模組一：資料爬蟲 (對應規範 16)"""
-    def __init__(self, target_url):
-        self.url = target_url
-        self.headers = {'User-Agent': 'Mozilla/5.0'}
+# 【功能概述】：爬取新聞標題並進行情緒分析 
 
-    def get_titles(self):
-        # 實作爬取新聞標題的邏輯
-        try:
-            response = requests.get(self.url, headers=self.headers)
-            soup = BeautifulSoup(response.text, 'html.parser')
-            # 範例：抓取特定標籤 (此處需根據目標網站調整)
-            return [t.get_text() for t in soup.find_all('h3')]
-        except Exception as e:
-            print(f"爬取錯誤: {e}")
-            return []
+def start_project():
+    print("--- 正在啟動：全自動新聞情緒分析儀 ---")
+    
+    # 1. 資料爬蟲 (以 Yahoo 新聞為例) 
+    url = "https://tw.news.yahoo.com/technology"
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    
+    try:
+        response = requests.get(url, headers=headers)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        # 抓取新聞標題標籤
+        titles = [t.get_text() for t in soup.find_all('h3')][:10] # 取前10則
+        
+        if not titles:
+            print("未能抓取到標題，請檢查網頁結構。")
+            return
 
-class EmotionAnalyzer:
-    """模組二：資料分析與情緒計算 (對應規範 11, 18)"""
-    def calculate_sentiment(self, text_list):
-        results = []
-        for text in text_list:
+        # 2. 資料分析與情緒分析 
+        data = []
+        for text in titles:
             s = SnowNLP(text)
-            # sentiment 分數介於 0~1，越接近 1 越正面
-            results.append({'content': text, 'score': s.sentiments})
-        return pd.DataFrame(results)
+            # score 越接近 1 越正面，越接近 0 越負面
+            data.append({'標題': text, '情緒分數': round(s.sentiments, 2)})
+        
+        df = pd.DataFrame(data)
+        print("\n--- 分析結果 ---")
+        print(df)
 
-class Visualizer:
-    """模組三：視覺化呈現 (對應規範 18, 43)"""
-    def plot_trend(self, df):
-        plt.figure(figsize=(10, 5))
-        plt.plot(df.index, df['score'], marker='o', linestyle='-')
-        plt.title("News Sentiment Trend")
+        # 3. 數據視覺化 (折線圖) [cite: 18, 43]
+        plt.figure(figsize=(10, 6))
+        plt.plot(df.index, df['情緒分數'], marker='o', color='b', linestyle='-')
+        plt.title("News Sentiment Trend (Technology)")
         plt.xlabel("News Index")
         plt.ylabel("Sentiment Score")
+        plt.ylim(0, 1)
         plt.grid(True)
+        print("\n正在生成趨勢圖表...")
         plt.show()
+
+    except Exception as e:
+        print(f"發生錯誤: {e}")
+
+if __name__ == "__main__":
+    start_project()
